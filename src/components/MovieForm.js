@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+//import React, { useState } from "react";
 import styled from "styled-components";
-import { handleSubmit } from "../api/Api";
+import { handleFormSubmit } from "../api/Api";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css'; 
+import { useForm, Controller } from "react-hook-form";
 
 const FormWrapper = styled.div`
   max-width: 400px;
@@ -31,66 +34,90 @@ const Button = styled.button`
 `;
 
 const MovieForm = () => {
-    const [formData, setFormData] = useState({
-        name: "",
-        date: "",
-        duration: "",
-        budget: ""
-    });
+    const {
+        control,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-
-    const handleFormSubmit = async () => {
+    const onSubmit = async (formData) => {
         try {
-            await handleSubmit(formData);
+            //para probar escenario de error
+            //throw new Error('Test error');
+            await handleFormSubmit(formData);
         } catch (error) {
             console.error("Error submitting data:", error);
         }
     };
 
+    const validateDate = (value) => {
+        const currentDate = new Date();
+        if (!value) {
+            return "La fecha es requerida";
+        } else if (value > currentDate) {
+            return "La fecha no puede ser mayor que la fecha actual";
+        }
+        return true;
+    };
+
     return (
-        <FormWrapper>
-            <FormField>
-                <Label>Nombre:</Label>
-                <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                />
-            </FormField>
-            <FormField>
-                <Label>Fecha de estreno:</Label>
-                <Input
-                    type="text"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                />
-            </FormField>
-            <FormField>
-                <Label>Duración (minutos):</Label>
-                <Input
-                    type="number"
-                    name="duration"
-                    value={formData.duration}
-                    onChange={handleChange}
-                />
-            </FormField>
-            <FormField>
-                <Label>Presupuesto:</Label>
-                <Input
-                    type="number"
-                    name="budget"
-                    value={formData.budget}
-                    onChange={handleChange}
-                />
-            </FormField>
-            <Button onClick={handleFormSubmit}>Guardar</Button>
-        </FormWrapper>
+        <div style={{ width: '80%', padding: '20px', }}>
+            <h1 className='header'>Películas</h1>
+            <FormWrapper>
+                <FormField>
+                    <Label>Nombre:</Label>
+                    <Controller
+                        name="name"
+                        defaultValue={""}
+                        control={control}
+                        rules={{ required: "El campo es requerido" }}
+                        render={({ field }) => <Input type="text" {...field} />}
+                    />
+                    {errors.name && <p>{errors.name.message}</p>}
+                </FormField>
+                <FormField>
+                    <Label>Fecha de estreno:</Label>
+                    <Controller
+                        name="date"
+                        control={control}
+                        rules={{ required: "La fecha es requerida", validate: validateDate }}
+                        render={({ field }) => (
+                            <DatePicker
+                                selected={field.value} 
+                                onChange={(date) => field.onChange(date)}
+                                dateFormat="dd/MM/yyyy" 
+                                placeholderText="Seleccione una fecha"
+                            />
+                        )}
+                    />
+                    {errors.date && <p>{errors.date.message}</p>}
+                </FormField>
+                <FormField>
+                    <Label>Duración (minutos):</Label>
+                    <Controller
+                        name="duration"
+                        control={control}
+                        defaultValue={''}
+                        rules={{ required: "El campo es requerido", min: { value: 1, message: "La duración no puede ser menor que uno" } }}
+                        render={({ field }) => <Input type="number" {...field} />}
+                    />
+                    {errors.duration && <p>{errors.duration.message}</p>}
+                </FormField>
+                <FormField>
+                    <Label>Presupuesto:</Label>
+                    <Controller
+                        name="budget"
+                        defaultValue={''}
+                        control={control}
+                        rules={{ required: "El campo es requerido", min: { value: 1, message: "El presupuesto no puede ser menor que uno" } }}
+                        render={({ field }) => <Input type="number" {...field} />}
+                    />
+                    {errors.budget && <p>{errors.budget.message}</p>}
+                </FormField>
+                <Button onClick={handleSubmit(onSubmit)}>Guardar</Button>
+            </FormWrapper>
+
+        </div>        
     );
 };
 
